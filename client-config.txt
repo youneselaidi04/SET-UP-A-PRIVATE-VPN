@@ -1,0 +1,59 @@
+Client Configuration
+
+Install the epel-release repository:
+[root@client ~]# yum install epel-release
+
+Install the application:
+[root@client ~]# yum install openvpn
+
+Check the connection between the server and client, and copy the certificates generated on the server to the client:
+[root@server ~]# cd /etc/openvpn/server/pki/
+[root@server pki]# scp ca.crt root@ip_client:/etc/openvpn/client/.
+[root@server pki]# scp issued/clientA.crt root@ip_client:/etc/openvpn/client/.
+[root@server pki]# scp private/clientA.key root@ip_client:/etc/openvpn/client/.
+
+Edit the configuration file for the client:
+[root@client ~]# vi /etc/openvpn/clientA.conf
+
+Add the following lines:
+
+#
+client
+dev tun
+proto udp
+remote ip_server 1194
+ca client/ca.crt          # If using a different path, modify it
+cert client/clientA.crt   # If using a different path, modify it
+key client/clientA.key    # If using a different path, modify it
+verb 5
+
+remote-cert-tls server
+auth-nocache
+cipher AES-256-CBC
+#
+
+Save and run the configuration to check its functionality:
+[root@client ~]# openvpn --config clientA.conf
+
+The following line at the end of the output indicates that the VPN started correctly:
+.... Initialization Sequence Complete
+
+If the VPN started correctly, you can enable it for use in two ways:
+
+Run in the background and not associated with the current session:
+[root@client ~]# nohup openvpn --config clientA.conf&
+
+As a service:
+[root@client ~]# systemctl start openvpn@clientA
+
+Just like with the server, a virtual interface should be created:
+[root@client ~]# ip addr
+
+
+5: tun0: <POINTOPOINT,MULTICAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UNKNOWN group default qlen 100
+    link/none 
+    inet 10.8.0.2/24 brd 10.8.0.255 scope global tun0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::a2fc:5174:af3f:5c3e/64 scope link flags 800 
+       valid_lft forever preferred_lft forever
+With the above, the VPN is established and functional.
